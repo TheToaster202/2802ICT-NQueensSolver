@@ -18,7 +18,7 @@ class Problem{
     ~Problem(){}
 
     int stateBfs(){
-        
+        return 1;
     }
 
     int getN(){return n;}
@@ -49,15 +49,31 @@ int bfs(Problem & problem){ //Breadth First Search Algorithm
     pair<int, int> node{0,0};
     frontier.push(node);
 
-    //Note depth needs to be n-1
-    int depth=0;
+    //Note depth/i needs to be n-1
     while (!frontier.empty()){
         node = frontier.front();
         frontier.pop();
 
         visited.push_back(node);
 
-        for(int i=0; )
+        for (int i=0; i<problem.getN(); i++){
+            for (int j=0; j<problem.getN(); j++){
+                
+                if(i!=j && pair<int, int>(i,j) != *visited.end()){//Checks if the node is the last node visted
+                    
+                    if(i != problem.getN()-1){
+                        frontier.push(pair<int, int>(i, j));
+                    }else{
+                        frontier.push(pair<int, int>(i, j));
+                        if(problem.stateBfs() == 0){
+                            return 1;
+                        }
+                        
+                    }
+
+                }
+            }
+        }
     }
     
 }
