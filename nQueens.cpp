@@ -56,16 +56,21 @@ int bfs(Problem & problem){ //Breadth First Search Algorithm
 
         visited.push_back(node);
 
+        cout << node.first << " " << node.second << endl;
+
         for (int i=0; i<problem.getN(); i++){
             for (int j=0; j<problem.getN(); j++){
+
+                cout << "I AND J: " << i << " " << j;
                 
-                if(i!=j && pair<int, int>(i,j) != *visited.end()){//Checks if the node is the last node visted
+                if(i!=j && (i != visited[0].first && j != visited[0].second)){//Checks if the node is the last node visted
                     
                     if(i != problem.getN()-1){
                         frontier.push(pair<int, int>(i, j));
                     }else{
                         frontier.push(pair<int, int>(i, j));
                         if(problem.stateBfs() == 0){
+                            cout << "HERE!" << endl;
                             return 1;
                         }
                         
@@ -74,6 +79,7 @@ int bfs(Problem & problem){ //Breadth First Search Algorithm
                 }
             }
         }
+        cout << endl;
     }
     
 }
