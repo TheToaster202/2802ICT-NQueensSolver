@@ -6,13 +6,16 @@
 #include <stack>
 #include <utility>
 #include <vector>
+#include <chrono>
 
 using namespace std;
+
+//Note this program needs to be complied with -O3 optimization to be relatively quick
 
 class Problem{//Holds information regarding the given problem
     public:
     //Constructors
-    Problem(int const & nP): n{nP}, board{0}{}
+    Problem(int const & nP): n{nP}{}
 
     //Destructor
     ~Problem(){}
@@ -25,23 +28,11 @@ class Problem{//Holds information regarding the given problem
 
     int getNXN(){return n*n;}
 
-    array<array<int, 20>, 20> getGraph(){return board;}
-
-    void printBoard(){
-        for (int i=0; i<n; i++){
-            for (int j=0; j<n; j++){
-                cout << board[i][j] << " ";
-            }
-            cout << endl;
-        }
-    }
-
     private:
     int n;
-    array<array<int, 20>, 20> board;  //Assumes maximum possible number of N, 20
 };
 
-class State{//Holds information about a current state, positions of queens the depth within a tree
+class State{//Holds information about a current state, ie the positions of the queens current "on the board"
     public:
 
     //Constructors
@@ -85,39 +76,86 @@ class State{//Holds information about a current state, positions of queens the d
     int sDepth;                     //Current Depth of the search tree
 };
 
-bool isUnique(State & state, int const & depth, int const & width){//Tests if the current selection is unqiue
-    for (int i=0; i<state.getDepth(); i++){
-        if(depth == state.getPos()[i].first && width == state.getPos()[i].second){
+int goalState(Problem & problem, queue<State> frontier){//Function that will test if the current solution is a goal state
+    int solutions = 0;
+
+    cout << "HERE" << endl;
+    
+    while (!frontier.empty()){//Loops until the queue is empty
+        bool isSolved = true;
+        //frontier.front().printPos();
+
+        for (int i=0; i<problem.getN()-1; i++){
+
+            for (int j=i+1; j<problem.getN(); j++){
+
+                if (frontier.front().getPos()[i].first == frontier.front().getPos()[j].first){
+                    isSolved = false;
+                    break;
+                }
+                
+                if (frontier.front().getPos()[i].second == frontier.front().getPos()[j].second){
+                    isSolved = false;
+                    break;
+                }
+
+                
+                //Removes the subtracts two positions from each other, and if they produce the same value then they are diagonal to each other
+                //(0,1) - (2,3) = -2, 2 * itself == 4,4 therefore they are diagonal
+
+                int xHold=0, yHold=0;
+                xHold = frontier.front().getPos()[i].first - frontier.front().getPos()[j].first;
+                yHold = frontier.front().getPos()[i].second - frontier.front().getPos()[j].second;
+
+                xHold*=xHold, yHold*=yHold;
+
+                if (xHold == yHold){
+                    /*cout << "HOLD: (" << xHold << " " << yHold << ") " << endl;
+                    cout << "I: (" << frontier.front().getPos()[i].first << " " << frontier.front().getPos()[i].second << ") J: (" 
+                    << frontier.front().getPos()[j].first << " " << frontier.front().getPos()[j].second << ")" << endl;*/
+                    isSolved = false;
+                    break;
+                }
+            }
+        }
+
+        if (isSolved == true){
+            
+            solutions ++;
+            if(problem.getN() < 7){
+                frontier.front().printPos();
+            }
+            
+        }
+        frontier.pop();
+    }
+	
+    return solutions;
+}
+
+bool isValid(State & node, int & width, int & depth, Problem & prob){//Tests whether the new positions is directly diagonal to the prior positions
+    if (node.getDepth() == 0){
+        return true;
+    }
+    
+    for (int i=0; i<node.getDepth(); i++){
+
+        if(width == node.getPos()[i].second){
+            return false;
+        }
+
+        int xHold = node.getPos()[i].first - depth;
+        int yHold = node.getPos()[i].second - width;
+
+        yHold *= yHold, xHold *= xHold;
+
+        if (xHold == yHold){
             return false;
         }
     }
-    return true;
-}
-
-bool goalState(Problem problem, State & node){//Function that will test if the current solution is a goal state
     
-    for (int i=0; i<node.getPos().size(); i++){//Probably redundant
-		problem.getGraph()[node.getPos()[i].first][node.getPos()[i].second];
-	}
-
-	
-	for (int i=0; i<node.getPos().size()-1; i++){//Loops through all queen positions and determines whether they are in a goal state
-		for (int j=i; j<node.getPos().size(); j++){
-			if (node.getPos()[i].first == node.getPos()[j].first){return false;}
-			if (node.getPos()[i].second == node.getPos()[j].second){return false;}
-			
-			int xHold = node.getPos()[i].first - node.getPos()[j].first;
-			xHold *= xHold;
-			
-			int yHold = node.getPos()[i].second - node.getPos()[j].second;
-			yHold *= yHold;
-			
-			if(yHold == xHold){return false;}
-		}
-	}
-	
     return true;
-}
+}  
 
 void printFrontier(queue<State> frontier){
     while(!frontier.empty()){
@@ -128,96 +166,39 @@ void printFrontier(queue<State> frontier){
     cout << endl;
 }
 
-/*void printFront(queue<pair<int, int>> frontier, vector<pair<int, int>> const & visited){
-    cout << "Queue [ ";
-    while (!frontier.empty()){
-        cout << "(" <<frontier.front().first << " " << frontier.front().second << ")";
-        frontier.pop();
-    }
-    cout << " ]" << endl;
-
-    /*cout << "Visited [ ";
-    for (int i=0; i<visited.size(); i++){
-        cout << "(" << visited[i].first << " " << visited[i].second << ")";
-    }
-    cout << " ]" << endl;
-}
-*/
-
-bool notExplored(pair<int, int> const & node, vector<State> & list, queue<State> frontier, int const & n){
-    
-    while (!frontier.empty()){
-        for(int i=0; i<frontier.front().getPos().size(); i++){
-            if(node.first == frontier.front().getPos()[i].first && node.second == frontier.front().getPos()[i].second){
-                return false;
-            }
-        }
-        frontier.pop();
-    }
-    
-    for (int i=0; i<list.size(); i++){
-        for (int j=0; j<list[i].getPos().size(); j++){
-            if (node.first == list[i].getPos()[j].first && node.second == list[i].getPos()[j].second){
-				return false;
-			}
-        }
-    }
-
-    return true;
-}
-
 int bfs(Problem & problem){ //Breadth First Search Algorithm
+    //Currently finds all paths to the lowest depth
 
-    queue<State> frontier;
-    vector<State> visited;
-    vector<State> success;
+    queue<State> qq;    //queue of queen's positionsd
+    qq.push(State());   //Pushes empty "State"
+    State nodeHold;     //Independent sate holder, does not change within the for loop
+    int depth = 0;
+    unsigned int solutions = 0;
 
-    State node;
-
-    frontier.push(State(pair<int, int>(0, 0)));
-    int depth = 0, solutions = 0;
-    
-
-    while(!frontier.empty()){
+    while (!qq.empty()){//Loops until either the queue is empty or the depth of N is reached                                                                                                                                                                                                                                                                                                                                                                                                                                                  
         
-        node = frontier.front();
-        frontier.pop();
+        nodeHold = qq.front();
+        
+        depth = nodeHold.getPos().size();
 
-        printFrontier(frontier);
-
-        visited.push_back(node);
-
-        for (int i=0; i<problem.getN(); i++){
+        if(depth > problem.getN()-1){
+            solutions = goalState(problem, qq);
             
-            State stateHold = node;
-            pair<int, int> child(depth, i);
+            break;
+        }
+        qq.pop();
 
-            if(notExplored(child, visited, frontier, problem.getN())){
-                stateHold.newDepth(child.first, child.second);
+        for(int i=0; i < problem.getN(); i++){
+            State node = nodeHold;
 
-                //node.printPos();        
-                
-                if(goalState(problem, stateHold) && depth == problem.getN()-1){
-                    if(success.size() < 7){
-                        success.push_back(frontier.front());
-                    }
-                    solutions++;
-                }
-
-                frontier.push(stateHold);   
+            if (isValid(nodeHold, i, depth, problem)){
+                node.newDepth(depth, i);
+                qq.push(node);
             }
+        
+            
         }
-
-        if(depth < problem.getN()-1){
-            depth++;
-        }
-
-    }
-
-
-    cout << endl << endl;
-    for(int i=0; i<success.size(); i++){
-        success[i].printPos();
+        //printFrontier(qq);
     }
     return solutions;
     
@@ -267,7 +248,8 @@ void ideal(){
 }
 
 
-int main(int const argc, char const ** argv){
+int main(int const argc, char const ** argv){// Main Code Driver
+    
     if (argc < 2){
         cerr << "Program needs an N value of 1-20 to run" << endl;
         return EXIT_FAILURE;
@@ -279,9 +261,9 @@ int main(int const argc, char const ** argv){
 
     Problem queens(atoi(argv[1]));
 
-    ideal();
+    //ideal();
 
-    queue<State> qq;
+    /*queue<State> qq;
     qq.push(State());
     State nodeHold;
     int depth = 0;
@@ -304,11 +286,18 @@ int main(int const argc, char const ** argv){
         }
         printFrontier(qq);
         
-    }
-
+    }*/
+    using namespace std::chrono;
+    auto start = high_resolution_clock::now();
 
     cout << "PROBLEM:\n";
-    //cout << bfs(queens) << endl;
+    cout << bfs(queens) << endl;
+
+    auto stop = high_resolution_clock::now();
+
+    auto duration = duration_cast<seconds>(stop - start);
+    auto duration2 = duration_cast<milliseconds>(stop - start);
+    cout << "TIME TAKEN" << endl << "Seconds: " << duration.count() << " Milliseconds: " << duration2.count() << endl;
     
 
 }
