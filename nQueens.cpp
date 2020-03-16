@@ -73,13 +73,11 @@ class State{//Holds information about a current state, ie the positions of the q
 
     private:
     vector<pair<int, int>> qPos;    //A vector of queen positions
-    int sDepth;                     //Current Depth of the search tree
+    long unsigned int sDepth;                     //Current Depth of the search tree
 };
 
-int goalState(Problem & problem, queue<State> frontier){//Function that will test if the current solution is a goal state
+int goalState(Problem & problem, queue<State> frontier, bool pruned){//Function that will test if the current solution is a goal state
     int solutions = 0;
-
-    cout << "HERE" << endl;
     
     while (!frontier.empty()){//Loops until the queue is empty
         bool isSolved = true;
@@ -120,6 +118,11 @@ int goalState(Problem & problem, queue<State> frontier){//Function that will tes
         }
 
         if (isSolved == true){
+
+            if (pruned){
+                frontier.front().printPos();
+                return 1;
+            }
             
             solutions ++;
             if(problem.getN() < 7){
@@ -167,13 +170,15 @@ void printFrontier(queue<State> frontier){
 }
 
 int bfs(Problem & problem){ //Breadth First Search Algorithm
+    
     //Currently finds all paths to the lowest depth
 
     queue<State> qq;    //queue of queen's positionsd
     qq.push(State());   //Pushes empty "State"
     State nodeHold;     //Independent sate holder, does not change within the for loop
-    int depth = 0;
-    unsigned int solutions = 0;
+
+    int depth = 0;      //The depth of the tree
+    long unsigned int solutions = 0; //Number of found, non unique solutions
 
     while (!qq.empty()){//Loops until either the queue is empty or the depth of N is reached                                                                                                                                                                                                                                                                                                                                                                                                                                                  
         
@@ -182,7 +187,7 @@ int bfs(Problem & problem){ //Breadth First Search Algorithm
         depth = nodeHold.getPos().size();
 
         if(depth > problem.getN()-1){
-            solutions = goalState(problem, qq);
+            solutions = goalState(problem, qq, false);
             
             break;
         }
@@ -198,10 +203,73 @@ int bfs(Problem & problem){ //Breadth First Search Algorithm
         
             
         }
-        //printFrontier(qq);
     }
     return solutions;
     
+}
+
+bool isVisited(vector<pair<int, int>> const & nodes, int const & depth, int const & width){
+    
+    if(nodes.empty()){
+        return false;
+    }
+
+    for (auto i=nodes.begin(); i!=nodes.end(); i++){
+        if ((*i).first == depth && (*i).second == width){
+            return true;
+        }
+    }
+    
+
+    return false;
+}
+
+int bfsP(Problem & problem){   //BFS But with pruned searches
+    //Currently finds all paths to the lowest depth
+
+    queue<State> qq;    //queue of queen's positionsd
+    qq.push(State());   //Pushes empty "State"
+    State nodeHold;     //Independent sate holder, does not change within the for loop
+
+    vector<pair<int, int>> visited;
+
+    int depth = 0;      //The depth of the tree
+    long unsigned int solutions = 0; //Number of found, non unique solutions
+
+    while (!qq.empty()){//Loops until either the queue is empty or the depth of N is reached                                                                                                                                                                                                                                                                                                                                                                                                                                                  
+        
+        nodeHold = qq.front();
+        
+        depth = nodeHold.getPos().size();
+
+        if(depth > problem.getN()-1){
+            solutions = goalState(problem, qq, false);
+            
+            break;
+        }
+        qq.pop();
+
+
+        for(int i=0; i < problem.getN(); i++){
+            State node = nodeHold;
+
+            if(!isVisited(visited, depth, i)){
+                if (isValid(nodeHold, i, depth, problem)){
+                    node.newDepth(depth, i);
+                    visited.push_back(pair<int, int>(depth, i));
+
+                    if (visited.size() >= depth){
+                        visited.clear();
+                    }
+                    
+                    qq.push(node);
+                }
+            }     
+        }
+        
+        
+    }
+    return solutions;
 }
 
 void ideal(){
@@ -257,47 +325,40 @@ int main(int const argc, char const ** argv){// Main Code Driver
 
     if (atoi(argv[1]) < 1 || atoi(argv[1]) > 20){
         cerr << "Program needs an N value of 1-20 to run" << endl;
+        return EXIT_FAILURE;
+    }
+
+    if (atoi(argv[1]) == 1){
+        cout << "[(0,0)]" << endl << "1" << endl;
+        return EXIT_SUCCESS;
     }
 
     Problem queens(atoi(argv[1]));
 
-    //ideal();
-
-    /*queue<State> qq;
-    qq.push(State());
-    State nodeHold;
-    int depth = 0;
-
-    while (!qq.empty()){                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                
-        
-        cout << "DEPTH: " << depth << endl;
-        nodeHold = qq.front();
-        qq.pop();
-        depth = nodeHold.getPos().size();
-
-        if(depth > 2){
-            break;
-        }
-
-        for(int i=0; i < 3; i++){
-            State node = nodeHold;
-            node.newDepth(depth, i);
-            qq.push(node);
-        }
-        printFrontier(qq);
-        
-    }*/
     using namespace std::chrono;
-    auto start = high_resolution_clock::now();
+    auto start = high_resolution_clock::now(); //Timing how long the bfs function takes to run and complete
 
-    cout << "PROBLEM:\n";
-    cout << bfs(queens) << endl;
+    //cout << "PROBLEM:\n";
+    //cout << bfs(queens) << endl;
 
     auto stop = high_resolution_clock::now();
 
     auto duration = duration_cast<seconds>(stop - start);
     auto duration2 = duration_cast<milliseconds>(stop - start);
-    cout << "TIME TAKEN" << endl << "Seconds: " << duration.count() << " Milliseconds: " << duration2.count() << endl;
-    
+
+    //cout << "BFS TIME TAKEN" << endl << "Seconds: " << duration.count() << " Milliseconds: " << duration2.count() << endl;
+
+    //BFS Prunes Call
+    start = high_resolution_clock::now(); //Timing how long the bfs function takes to run and complete
+    cout << bfsP(queens) << endl;
+
+    stop = high_resolution_clock::now();
+
+    duration = duration_cast<seconds>(stop - start);
+    duration2 = duration_cast<milliseconds>(stop - start);
+
+    cout << "BFS PRUNED, TIME TAKEN" << endl << "Seconds: " << duration.count() << " Milliseconds: " << duration2.count() << endl;
+
+    return EXIT_SUCCESS;
 
 }
