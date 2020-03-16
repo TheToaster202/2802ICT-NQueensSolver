@@ -76,63 +76,59 @@ class State{//Holds information about a current state, ie the positions of the q
     long unsigned int sDepth;                     //Current Depth of the search tree
 };
 
-int goalState(Problem & problem, queue<State> frontier, bool pruned){//Function that will test if the current solution is a goal state
+int goalState(Problem & problem, State frontier, bool pruned){//Function that will test if the current solution is a goal state
     int solutions = 0;
     
-    while (!frontier.empty()){//Loops until the queue is empty
-        bool isSolved = true;
-        //frontier.front().printPos();
+    bool isSolved = true;
 
-        for (int i=0; i<problem.getN()-1; i++){
+    for (int i=0; i<problem.getN()-1; i++){
 
-            for (int j=i+1; j<problem.getN(); j++){
+        for (int j=i+1; j<problem.getN(); j++){
 
-                if (frontier.front().getPos()[i].first == frontier.front().getPos()[j].first){
-                    isSolved = false;
-                    break;
-                }
+            if (frontier.getPos()[i].first == frontier.getPos()[j].first){
+                isSolved = false;
+                break;
+            }
                 
-                if (frontier.front().getPos()[i].second == frontier.front().getPos()[j].second){
-                    isSolved = false;
-                    break;
-                }
+            if (frontier.getPos()[i].second == frontier.getPos()[j].second){
+                isSolved = false;
+                break;
+            }
 
                 
-                //Removes the subtracts two positions from each other, and if they produce the same value then they are diagonal to each other
-                //(0,1) - (2,3) = -2, 2 * itself == 4,4 therefore they are diagonal
+            //Removes the subtracts two positions from each other, and if they produce the same value then they are diagonal to each other
+            //(0,1) - (2,3) = -2, 2 * itself == 4,4 therefore they are diagonal
+            
+            int xHold=0, yHold=0;
+            xHold = frontier.getPos()[i].first - frontier.getPos()[j].first;
+            yHold = frontier.getPos()[i].second - frontier.getPos()[j].second;
 
-                int xHold=0, yHold=0;
-                xHold = frontier.front().getPos()[i].first - frontier.front().getPos()[j].first;
-                yHold = frontier.front().getPos()[i].second - frontier.front().getPos()[j].second;
+            xHold*=xHold, yHold*=yHold;
 
-                xHold*=xHold, yHold*=yHold;
-
-                if (xHold == yHold){
-                    /*cout << "HOLD: (" << xHold << " " << yHold << ") " << endl;
-                    cout << "I: (" << frontier.front().getPos()[i].first << " " << frontier.front().getPos()[i].second << ") J: (" 
-                    << frontier.front().getPos()[j].first << " " << frontier.front().getPos()[j].second << ")" << endl;*/
-                    isSolved = false;
-                    break;
-                }
+            if (xHold == yHold){
+                /*cout << "HOLD: (" << xHold << " " << yHold << ") " << endl;
+                cout << "I: (" << frontier.front().getPos()[i].first << " " << frontier.front().getPos()[i].second << ") J: (" 
+                << frontier.front().getPos()[j].first << " " << frontier.front().getPos()[j].second << ")" << endl;*/
+                isSolved = false;
+                break;
             }
         }
-
-        if (isSolved == true){
-
-            if (pruned){
-                frontier.front().printPos();
-                return 1;
-            }
-            
-            solutions ++;
-            if(problem.getN() < 7){
-                frontier.front().printPos();
-            }
-            
-        }
-        frontier.pop();
     }
-	
+
+    if (isSolved == true){
+
+        if (pruned){
+            frontier.printPos();
+            return 1;
+        }
+            
+        solutions ++;
+        if(problem.getN() < 7){
+            frontier.printPos();
+        }
+            
+    }
+    	
     return solutions;
 }
 
@@ -169,7 +165,7 @@ void printFrontier(queue<State> frontier){
     cout << endl;
 }
 
-int bfs(Problem & problem){ //Breadth First Search Algorithm
+int bfs(Problem & problem, bool oneAnswer = false){ //Breadth First Search Algorithm
     
     //Currently finds all paths to the lowest depth
 
@@ -187,10 +183,13 @@ int bfs(Problem & problem){ //Breadth First Search Algorithm
         depth = nodeHold.getPos().size();
 
         if(depth > problem.getN()-1){
-            solutions = goalState(problem, qq, false);
+            solutions += goalState(problem, qq.front(), oneAnswer);
             
-            break;
+            if (oneAnswer && solutions > 0){
+                return solutions;
+            }
         }
+
         qq.pop();
 
         for(int i=0; i < problem.getN(); i++){
@@ -224,7 +223,7 @@ bool isVisited(vector<pair<int, int>> const & nodes, int const & depth, int cons
     return false;
 }
 
-int bfsP(Problem & problem){   //BFS But with pruned searches
+int bfsP(Problem & problem, bool oneAnswer = false){   //BFS But with pruned searches
     //Currently finds all paths to the lowest depth
 
     queue<State> qq;    //queue of queen's positionsd
@@ -243,8 +242,7 @@ int bfsP(Problem & problem){   //BFS But with pruned searches
         depth = nodeHold.getPos().size();
 
         if(depth > problem.getN()-1){
-            solutions = goalState(problem, qq, false);
-            
+            solutions += goalState(problem, qq.front(), oneAnswer);  
             break;
         }
         qq.pop();
@@ -259,7 +257,7 @@ int bfsP(Problem & problem){   //BFS But with pruned searches
                     visited.push_back(pair<int, int>(depth, i));
 
                     if (visited.size() >= depth){
-                        visited.clear();
+                        visited.erase(visited.begin());
                     }
                     
                     qq.push(node);
@@ -271,50 +269,6 @@ int bfsP(Problem & problem){   //BFS But with pruned searches
     }
     return solutions;
 }
-
-void ideal(){
-    State state(pair<int, int>(0,0));
-
-    queue<State> something;
-    something.push(state);
-    something.push(State(pair<int, int>(0,1)));
-    something.push(State(pair<int, int>(0,2)));
-
-    state = something.front();
-    something.pop();
-    State stateHold = state;
-    
-    stateHold.newDepth(1,0);
-    something.push(stateHold);
-
-    stateHold = state;
-    stateHold.newDepth(1,1);
-    something.push(stateHold);
-
-    stateHold = state;
-    stateHold.newDepth(1,2);
-    something.push(stateHold);
-
-    printFrontier(something);
-
-    state = something.front();
-    something.pop();
-    stateHold = state;
-
-    stateHold.newDepth(1,0);
-    something.push(stateHold);
-
-    stateHold = state;
-    stateHold.newDepth(1,1);
-    something.push(stateHold);
-
-    stateHold = state;
-    stateHold.newDepth(1,2);
-    something.push(stateHold);
-
-    printFrontier(something);
-}
-
 
 int main(int const argc, char const ** argv){// Main Code Driver
     
@@ -338,19 +292,19 @@ int main(int const argc, char const ** argv){// Main Code Driver
     using namespace std::chrono;
     auto start = high_resolution_clock::now(); //Timing how long the bfs function takes to run and complete
 
-    //cout << "PROBLEM:\n";
-    //cout << bfs(queens) << endl;
+    cout << "PROBLEM:\n";
+    cout << bfs(queens, true) << endl;
 
     auto stop = high_resolution_clock::now();
 
     auto duration = duration_cast<seconds>(stop - start);
     auto duration2 = duration_cast<milliseconds>(stop - start);
 
-    //cout << "BFS TIME TAKEN" << endl << "Seconds: " << duration.count() << " Milliseconds: " << duration2.count() << endl;
+    cout << "BFS TIME TAKEN" << endl << "Seconds: " << duration.count() << " Milliseconds: " << duration2.count() << endl;
 
     //BFS Prunes Call
     start = high_resolution_clock::now(); //Timing how long the bfs function takes to run and complete
-    cout << bfsP(queens) << endl;
+    cout << bfsP(queens, false) << endl;
 
     stop = high_resolution_clock::now();
 
