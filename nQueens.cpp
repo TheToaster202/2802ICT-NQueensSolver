@@ -1,12 +1,11 @@
 #include <cstdio>
 #include <iostream>
 #include <cstdlib>
-#include <array>
 #include <queue>
-#include <stack>
 #include <utility>
 #include <vector>
 #include <chrono>
+#include <random>
 
 using namespace std;
 
@@ -19,10 +18,6 @@ class Problem{//Holds information regarding the given problem
 
     //Destructor
     ~Problem(){}
-
-    int stateBfs(){
-        
-    }
 
     int getN(){return n;}
 
@@ -76,7 +71,7 @@ class State{//Holds information about a current state, ie the positions of the q
     long unsigned int sDepth;                     //Current Depth of the search tree
 };
 
-int goalState(Problem & problem, State frontier, bool pruned){//Function that will test if the current solution is a goal state
+int goalState(Problem & problem, State frontier, bool pruned = false){//Function that will test if the current solution is a goal state
     int solutions = 0;
     
     bool isSolved = true;
@@ -166,6 +161,7 @@ void printFrontier(queue<State> frontier){
 }
 
 int bfs(Problem & problem, bool oneAnswer = false){ //Breadth First Search Algorithm
+    //POTENTIALLY: Re write this so that instead of using a vector of pairs you just use the index as the depth indicator...
     
     //Currently finds all paths to the lowest depth
 
@@ -270,6 +266,122 @@ int bfsP(Problem & problem, bool oneAnswer = false){   //BFS But with pruned sea
     return solutions;
 }
 
+vector<int> genRandomState(Problem & prob){    //Generates a random state where all queens are on the board
+    
+    vector<int> randState;
+    vector<int> usedNumbers;
+
+    for(int i=0; i<prob.getN(); i++){
+        usedNumbers.push_back(0);
+    }
+
+    int i=0;
+    while (i<prob.getN()){
+        int randNumber = rand()%prob.getN();
+        
+        if (usedNumbers[randNumber]==0){
+            randState.push_back(randNumber);
+            i++;
+            usedNumbers[randNumber] = 1;
+        }
+        
+    }
+
+    return randState;
+
+
+}
+
+int stateEval(vector<int> & positions, Problem & prob){
+    int level = 0;
+    
+    for (int i=0; i<prob.getN()-1; i++){
+        for (int j=i+1; j<prob.getN(); j++){
+            if (positions[i] == positions[j]){
+                level ++;
+            }
+
+            int xH = positions[i] - positions[j];
+            xH *= xH;
+
+            int yH = i - j;
+            yH *= yH;
+
+            if (xH == yH){
+                level++;
+            }
+        }
+    }
+
+    return level;
+}
+
+void hillClimbing(Problem & prob){
+
+    srand((int)time(NULL)); //Seeding rand() for later
+
+    vector<int> initState = genRandomState(prob);   //Note: Index is breadth
+    
+    int confidence = stateEval(initState, prob);
+    cout << "CONFIDENCE " << confidence << endl;
+
+    cout << "INITIAL STATE" << endl;
+    for (int i=0; i<prob.getN(); i++){
+        for (int j=0; j<prob.getN(); j++){
+            if(j == initState[i]){
+                cout << "Q\t";
+            }else{
+                cout << "-\t";
+            }
+                
+        }
+
+        cout << endl << endl;
+    }
+
+   while (confidence != 0){        //Shotgun Hill Climbing
+
+        for (int i=0; i<prob.getN(); i++){
+            for (int j=0; j<prob.getN(); j++){
+                if (i != initState[j]){
+                    vector<int> newState = initState;
+                    newState[j] = i;
+
+                    int newConfidence = stateEval(newState, prob);
+                    if (newConfidence < confidence){
+                        initState = newState;
+                        confidence = newConfidence;
+                    }    
+                }
+            }
+        }
+
+        if (confidence != 0){
+            //cout << "CONFIDENCE: " << confidence << " SHOUTGUN FIRE!" << endl << endl;
+            initState = genRandomState(prob);
+            confidence = stateEval(initState, prob);
+        }
+    }
+
+    cout << "GOAL STATE" << endl;
+
+    for (int i=0; i<prob.getN(); i++){
+            for (int j=0; j<prob.getN(); j++){
+                if(j == initState[i]){
+                    cout << "Q\t";
+                }else{
+                    cout << "-\t";
+                }
+                
+            }
+
+            cout << endl << endl;
+        }
+
+    return;
+
+}
+
 int main(int const argc, char const ** argv){// Main Code Driver
     
     if (argc < 2){
@@ -290,10 +402,10 @@ int main(int const argc, char const ** argv){// Main Code Driver
     Problem queens(atoi(argv[1]));
 
     using namespace std::chrono;
-    auto start = high_resolution_clock::now(); //Timing how long the bfs function takes to run and complete
+    /*auto start = high_resolution_clock::now(); //Timing how long the bfs function takes to run and complete
 
     cout << "PROBLEM:\n";
-    cout << bfs(queens, true) << endl;
+    cout << bfs(queens, false) << endl;
 
     auto stop = high_resolution_clock::now();
 
@@ -302,16 +414,18 @@ int main(int const argc, char const ** argv){// Main Code Driver
 
     cout << "BFS TIME TAKEN" << endl << "Seconds: " << duration.count() << " Milliseconds: " << duration2.count() << endl;
 
-    //BFS Prunes Call
+    //BFS Pruned Call
     start = high_resolution_clock::now(); //Timing how long the bfs function takes to run and complete
-    cout << bfsP(queens, false) << endl;
+    cout << bfsP(queens, true) << endl;
 
     stop = high_resolution_clock::now();
 
     duration = duration_cast<seconds>(stop - start);
     duration2 = duration_cast<milliseconds>(stop - start);
 
-    cout << "BFS PRUNED, TIME TAKEN" << endl << "Seconds: " << duration.count() << " Milliseconds: " << duration2.count() << endl;
+    cout << "BFS ONE SOLUTION, TIME TAKEN" << endl << "Seconds: " << duration.count() << " Milliseconds: " << duration2.count() << endl;*/
+
+    hillClimbing(queens);
 
     return EXIT_SUCCESS;
 
