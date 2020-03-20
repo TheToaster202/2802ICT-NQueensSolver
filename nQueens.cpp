@@ -316,19 +316,17 @@ int stateEval(vector<int> & positions, Problem & prob){
     return level;
 }
 
-void hillClimbing(Problem & prob){
+void hillClimbing(Problem & prob, vector<int> initState, bool shotgun = false){
 
-    srand((int)time(NULL)); //Seeding rand() for later
-
-    vector<int> initState = genRandomState(prob);   //Note: Index is breadth
+    //Note INDEX is BREADTH on the vector of positions
     
     int confidence = stateEval(initState, prob);
-    cout << "CONFIDENCE " << confidence << endl;
 
     cout << "INITIAL STATE" << endl;
+    cout << "EVAL: " << confidence << endl;
     for (int i=0; i<prob.getN(); i++){
         for (int j=0; j<prob.getN(); j++){
-            if(j == initState[i]){
+            if(i == initState[j]){
                 cout << "Q\t";
             }else{
                 cout << "-\t";
@@ -337,6 +335,10 @@ void hillClimbing(Problem & prob){
         }
 
         cout << endl << endl;
+    }
+
+    if(shotgun){
+        cout << "Shotgun Mode" << endl;
     }
 
    while (confidence != 0){        //Shotgun Hill Climbing
@@ -356,30 +358,104 @@ void hillClimbing(Problem & prob){
             }
         }
 
-        if (confidence != 0){
-            //cout << "CONFIDENCE: " << confidence << " SHOUTGUN FIRE!" << endl << endl;
+        if (shotgun && confidence != 0){
             initState = genRandomState(prob);
             confidence = stateEval(initState, prob);
+        }else{
+            break;
         }
     }
 
-    cout << "GOAL STATE" << endl;
+    cout << "FINAL STATE" << endl;
+    cout << "EVAL: " << confidence << endl;
 
     for (int i=0; i<prob.getN(); i++){
-            for (int j=0; j<prob.getN(); j++){
-                if(j == initState[i]){
-                    cout << "Q\t";
-                }else{
-                    cout << "-\t";
-                }
-                
+        for (int j=0; j<prob.getN(); j++){
+            if(i == initState[j]){
+                cout << "Q\t";
+            }else{
+                cout << "-\t";
             }
-
-            cout << endl << endl;
+                
         }
+
+         cout << endl << endl;
+    }
+
 
     return;
 
+}
+
+void simulatedAnnealing(Problem & prob, vector<int> initState, double const decayRate = 0.5, int const constantMultiplyer = 10){    //SA, similar to HC and SHC but as the evaluation gets lower the probability for it to pick an answer anyway increases
+    
+    //Note: Index is breadth
+    
+    int confidence = stateEval(initState, prob);
+    double temperature = prob.getN() * constantMultiplyer; //Adjusts the adjustment to be relative to the size of the problem
+    int tempMax = temperature;
+    int iterTemp = 0;
+
+    cout << "INITIAL STATE" << endl;
+    cout << "EVAL: " << confidence << endl;
+    for (int i=0; i<prob.getN(); i++){
+        for (int j=0; j<prob.getN(); j++){
+            if(i == initState[j]){
+                cout << "Q\t";
+            }else{
+                cout << "-\t";
+            }
+                
+        }
+
+        cout << endl << endl;
+    }
+
+    while (confidence != 0){
+        for (int i=0; i<prob.getN(); i++){
+            for (int j=0; j<prob.getN(); j++){
+                if (i != initState[j]){
+                    vector<int> newState = initState;
+                    newState[j] = i;
+
+                    int newConfidence = stateEval(newState, prob);
+
+                    if (newConfidence == 0){
+                        initState = newState;
+                        confidence = newConfidence;
+                        break;
+                    }
+
+                    int skipP = rand() % tempMax;
+
+                    if (newConfidence < confidence || (skipP * newConfidence) < temperature){//IF the random value - new confidence is greater than the adjusted value /2 then it will skip
+                        initState = newState;
+                        confidence = newConfidence;
+                    }    
+                }
+            }
+        }
+
+        temperature = tempMax * pow(exp(1), -(decayRate * iterTemp));
+        iterTemp++;
+    }
+    
+
+    cout << "FINAL STATE" << endl;
+    cout << "EVAL: " << confidence << endl;
+
+    for (int i=0; i<prob.getN(); i++){
+        for (int j=0; j<prob.getN(); j++){
+            if(i == initState[j]){
+                cout << "Q\t";
+            }else{
+                cout << "-\t";
+            }
+                
+        }
+
+         cout << endl << endl;
+    }
 }
 
 int main(int const argc, char const ** argv){// Main Code Driver
@@ -399,20 +475,22 @@ int main(int const argc, char const ** argv){// Main Code Driver
         return EXIT_SUCCESS;
     }
 
+    srand((int)time(NULL)); //Seeding rand() for later
+
     Problem queens(atoi(argv[1]));
 
     using namespace std::chrono;
-    /*auto start = high_resolution_clock::now(); //Timing how long the bfs function takes to run and complete
+    auto start = high_resolution_clock::now(); //Timing how long the bfs function takes to run and complete
 
-    cout << "PROBLEM:\n";
-    cout << bfs(queens, false) << endl;
+    /*cout << "PROBLEM:\n";
+    cout << bfs(queens, false) << endl;*/
 
     auto stop = high_resolution_clock::now();
 
     auto duration = duration_cast<seconds>(stop - start);
     auto duration2 = duration_cast<milliseconds>(stop - start);
 
-    cout << "BFS TIME TAKEN" << endl << "Seconds: " << duration.count() << " Milliseconds: " << duration2.count() << endl;
+    /*cout << "BFS TIME TAKEN" << endl << "Seconds: " << duration.count() << " Milliseconds: " << duration2.count() << endl;
 
     //BFS Pruned Call
     start = high_resolution_clock::now(); //Timing how long the bfs function takes to run and complete
@@ -425,7 +503,26 @@ int main(int const argc, char const ** argv){// Main Code Driver
 
     cout << "BFS ONE SOLUTION, TIME TAKEN" << endl << "Seconds: " << duration.count() << " Milliseconds: " << duration2.count() << endl;*/
 
-    hillClimbing(queens);
+    vector<int> initState = genRandomState(queens);
+    cout << "HILL CLIMBING" << endl;
+    start = high_resolution_clock::now();
+
+    hillClimbing(queens, initState, true);
+
+    stop = high_resolution_clock::now();
+    duration = duration_cast<seconds>(stop - start);
+    duration2 = duration_cast<milliseconds>(stop - start);
+    cout << "TIME TAKEN:" << endl << "Seconds: " << duration.count() << " Milliseconds: " << duration2.count() << endl;
+
+    cout << "SIMULATED ANNEALING" << endl;
+    start = high_resolution_clock::now();
+
+    simulatedAnnealing(queens, initState);
+
+    stop = high_resolution_clock::now();
+    duration = duration_cast<seconds>(stop - start);
+    duration2 = duration_cast<milliseconds>(stop - start);
+    cout << "TIME TAKEN:" << endl << "Seconds: " << duration.count() << " Milliseconds: " << duration2.count() << endl;
 
     return EXIT_SUCCESS;
 
