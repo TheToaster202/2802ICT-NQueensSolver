@@ -6,6 +6,7 @@
 #include <vector>
 #include <chrono>
 #include <random>
+#include <fstream>
 
 using namespace std;
 
@@ -14,17 +15,19 @@ using namespace std;
 class Problem{//Holds information regarding the given problem
     public:
     //Constructors
-    Problem(int const & nP): n{nP}{}
+    Problem(int const & nP, int const & kP): n{nP}, k{kP}{}
 
     //Destructor
     ~Problem(){}
 
     int getN(){return n;}
+    int getK(){return k;}
 
-    int getNXN(){return n*n;}
+    void incN(){n+=1;}
 
     private:
-    int n;
+    int n;  // NxN Board and number of queens
+    int k;  //  N-K range for local search algorithms
 };
 
 class State{//Holds information about a current state, ie the positions of the queens current "on the board"
@@ -162,17 +165,19 @@ bool isValid(State & node, int & width, int & depth, Problem & prob){//Tests whe
     }
     
     return true;
-}  
+}
 
-int bfs(Problem & problem, bool oneAnswer = false){ //Breadth First Search Algorithm
-    //POTENTIALLY: Re write this so that instead of using a vector of pairs you just use the index as the depth indicator...
-    //Rewrite this to remove the need for the isVaild check
+int bfs(Problem & problem, bool oneAnswer = false, bool toFile = false){ //Breadth First Search Algorithm
+    //Going to need to make it so that the queue is read to a file instead of to memory
     
     //Currently finds all paths to the lowest depth
 
     queue<State> qq;    //queue of queen's positionsd
     qq.push(State());   //Pushes empty "State"
     State nodeHold;     //Independent sate holder, does not change within the for loop
+    
+    ofstream queueOut;
+    ifstream queueIn;
 
     int depth = 0;      //The depth of the tree
     long unsigned int solutions = 0; //Number of found, non unique solutions
@@ -304,7 +309,7 @@ int stateEval(vector<int> & positions, Problem & prob){
     return level;
 }
 
-void hillClimbing(Problem & prob, vector<int> initState, bool shotgun = false){
+void hillClimbing(Problem & prob, vector<int> initState, bool shotgun){
 
     //Note INDEX is BREADTH on the vector of positions
     
@@ -448,68 +453,124 @@ void simulatedAnnealing(Problem & prob, vector<int> initState, double const deca
 
 int main(int const argc, char const ** argv){// Main Code Driver
     
-    if (argc < 2){
-        cerr << "Program needs an N value of 1-20 to run" << endl;
+    bool bfsMode = false, lsMode = false;
+    bool hcMode = false;
+
+    cout.clear();
+
+    cout << argc << endl;
+
+    if (argc < 3){
+        cerr << "Program needs an N value of 1-20 and a K range value to run" << endl;
         return EXIT_FAILURE;
     }
+    
+    if(argc >= 4){
+        if (atoi(argv[3]) > 0){
+            bfsMode = true;
+        }
+    }
+    
+    if(argc >= 5){
+        if (atoi(argv[4]) > 0){
+            lsMode = true;
+        }
+    }
+
+    if (argc == 6){
+        if (atoi(argv[5]) > 0){
+            hcMode = true;
+        }
+    }
+
+    cout << atoi(argv[3]) << atoi(argv[4]) <<atoi(argv[5]) << endl;
+
+    cout << bfsMode << lsMode << hcMode << endl;
+
 
     if (atoi(argv[1]) < 1 || atoi(argv[1]) > 20){
         cerr << "Program needs an N value of 1-20 to run" << endl;
         return EXIT_FAILURE;
     }
-
-    if (atoi(argv[1]) == 1){
-        cout << "[(0,0)]" << endl << "1" << endl;
-        return EXIT_SUCCESS;
+    
+    if (atoi(argv[2]) < atoi(argv[1]) && atoi(argv[2]) != 0){// k == 0 is the opt out of the range statement
+            cerr << "K value must be greater than N value" << endl;
+            return EXIT_FAILURE;
     }
 
     srand((int)time(NULL)); //Seeding rand() for later
 
-    Problem queens(atoi(argv[1]));
+    Problem queens(atoi(argv[1]), atoi(argv[2]));
 
     using namespace std::chrono;
+    
     auto start = high_resolution_clock::now(); //Timing how long the bfs function takes to run and complete
-
-    cout << "PROBLEM:\n";
-    cout << bfs(queens, false) << endl;
-
     auto stop = high_resolution_clock::now();
-
     auto duration = duration_cast<seconds>(stop - start);
     auto duration2 = duration_cast<milliseconds>(stop - start);
 
-    cout << "BFS TIME TAKEN" << endl << "Seconds: " << duration.count() << " Milliseconds: " << duration2.count() << endl;
+    if (bfsMode){
+        cout << "BFS" << endl;
 
-    //BFS Pruned Call
-    start = high_resolution_clock::now(); //Timing how long the bfs function takes to run and complete
-    cout << bfsP(queens, false) << endl;
+        start = high_resolution_clock::now();
+        cout << bfs(queens, false) << endl;
 
-    stop = high_resolution_clock::now();
+        stop = high_resolution_clock::now();
+        duration = duration_cast<seconds>(stop - start);
+        duration2 = duration_cast<milliseconds>(stop - start);
+            
 
-    duration = duration_cast<seconds>(stop - start);
-    duration2 = duration_cast<milliseconds>(stop - start);
-    cout << "BFS ONE SOLUTION, TIME TAKEN" << endl << "Seconds: " << duration.count() << " Milliseconds: " << duration2.count() << endl;
+         cout << "BFS TIME TAKEN" << endl << "Seconds: " << duration.count() << " Milliseconds: " << duration2.count() << endl;
+        
 
-    /*vector<int> initState = genRandomState(queens);
-    cout << "HILL CLIMBING" << endl;
-    start = high_resolution_clock::now();
+        //BFS Pruned Call
+        start = high_resolution_clock::now(); //Timing how long the bfs function takes to run and complete
+        
+        cout << bfsP(queens, false) << endl;
 
-    hillClimbing(queens, initState, true);
+        stop = high_resolution_clock::now();
 
-    stop = high_resolution_clock::now();
-    duration = duration_cast<seconds>(stop - start);
-    duration2 = duration_cast<milliseconds>(stop - start);
-    cout << "TIME TAKEN:" << endl << "Seconds: " << duration.count() << " Milliseconds: " << duration2.count() << endl;
+        duration = duration_cast<seconds>(stop - start);
+        duration2 = duration_cast<milliseconds>(stop - start);
+        cout << "BFS PRUNED, TIME TAKEN" << endl << "Seconds: " << duration.count() << " Milliseconds: " << duration2.count() << endl;
+    }
 
-    cout << "SIMULATED ANNEALING" << endl;
-    start = high_resolution_clock::now();
+    
+    if (lsMode){
+        //Local Searches
+        cout << endl << "LOCAL SEARCHES" << endl;
 
-    simulatedAnnealing(queens, initState);
+        while (queens.getN() <= queens.getK() || queens.getK() == 0){//Will loop until n == k, one iteration if k == 0
+            cout << endl << "N: " << queens.getN() << endl << endl;
+            
+            vector<int> initState = genRandomState(queens);
+            cout << "HILL CLIMBING" << endl;
+            start = high_resolution_clock::now();
 
-    stop = high_resolution_clock::now();
-    duration = duration_cast<seconds>(stop - start);
-    duration2 = duration_cast<milliseconds>(stop - start);
-    cout << "TIME TAKEN:" << endl << "Seconds: " << duration.count() << " Milliseconds: " << duration2.count() << endl;*/
+            hillClimbing(queens, initState, hcMode);
+
+            stop = high_resolution_clock::now();
+            duration = duration_cast<seconds>(stop - start);
+            duration2 = duration_cast<milliseconds>(stop - start);
+            cout << "TIME TAKEN:" << endl << "Seconds: " << duration.count() << " Milliseconds: " << duration2.count() << endl;
+
+            cout << "SIMULATED ANNEALING" << endl;
+            start = high_resolution_clock::now();
+
+            simulatedAnnealing(queens, initState);
+
+            stop = high_resolution_clock::now();
+            duration = duration_cast<seconds>(stop - start);
+            duration2 = duration_cast<milliseconds>(stop - start);
+            cout << "TIME TAKEN:" << endl << "Seconds: " << duration.count() << " Milliseconds: " << duration2.count() << endl;
+            
+            if (queens.getK() == 0){
+                break;
+            }
+
+            queens.incN();
+        }
+    }
 
     return EXIT_SUCCESS;
 
