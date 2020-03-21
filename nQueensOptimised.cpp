@@ -33,7 +33,7 @@ class State{//Holds information about a current state, ie the positions of the q
     //Constructors
     State():qPos{0}, sDepth{0}{}    //For the intial state
 
-    State(pair<int, int> const & pos):qPos{pos}, sDepth{0} {sDepth = qPos.size();} //First node push
+    State(int const & pos):qPos{pos}, sDepth{0} {sDepth = qPos.size();} //First node push
     
     State(const State & that){//Copy Constructor
         qPos = that.qPos;
@@ -41,51 +41,7 @@ class State{//Holds information about a current state, ie the positions of the q
     }
 
     //Getters
-    vector<pair<int, int>> getPos(){
-        return qPos;
-    }
-
-    int getDepth(){
-        return sDepth;
-    }
-
-    void newDepth(int const & i, int const & j){//Pushes a new queen pos into the positions list
-        qPos.push_back(pair<int, int>(i,j));
-        sDepth = qPos.size();
-    }
-    void remove(){
-        qPos.erase(qPos.begin());
-        sDepth = qPos.size();
-    }
-
-    void printPos(){
-        cout << "[ ";
-        for(int i=0; i<qPos.size(); i++){
-            cout << "(" << qPos[i].first << " " << qPos[i].second << ")";
-        }
-        cout << " ] \n";
-    }
-
-    private:
-    vector<pair<int, int>> qPos;    //A vector of queen positions
-    long unsigned int sDepth;                     //Current Depth of the search tree
-};
-
-class State2{//Holds information about a current state, ie the positions of the queens current "on the board"
-    public:
-
-    //Constructors
-    State2():qPos{0}, sDepth{0}{}    //For the intial state
-
-    State2(int const & pos):qPos{pos}, sDepth{0} {sDepth = qPos.size();} //First node push
-    
-    State2(const State2 & that){//Copy Constructor
-        qPos = that.qPos;
-        sDepth = qPos.size();
-    }
-
-    //Getters
-    vector<int> getPos(){
+    vector<int> & getPos(){
         return qPos;
     }
 
@@ -104,7 +60,7 @@ class State2{//Holds information about a current state, ie the positions of the 
 
     void printPos(){
         cout << "[ ";
-        for(int i=0; i<qPos.size(); i++){
+        for(int i=0; i<qPos.size()-1; i++){
             cout << "(" << i << " " << qPos[i] << ")";
         }
         cout << " ] \n";
@@ -132,16 +88,12 @@ int goalState(Problem & problem, queue<State> frontier, bool pruned = false){//F
 
     while (!frontier.empty()){
         isSolved = true;
+
         for (int i=0; i<problem.getN()-1; i++){
 
             for (int j=i+1; j<problem.getN(); j++){
 
-                if (frontier.front().getPos()[i].first == frontier.front().getPos()[j].first){
-                    isSolved = false;
-                    break;
-                }
-                        
-                if (frontier.front().getPos()[i].second == frontier.front().getPos()[j].second){
+                if (frontier.front().getPos()[i] == frontier.front().getPos()[j]){
                     isSolved = false;
                     break;
                 }
@@ -151,8 +103,8 @@ int goalState(Problem & problem, queue<State> frontier, bool pruned = false){//F
                 //(0,1) - (2,3) = -2, 2 * itself == 4,4 therefore they are diagonal
                     
                 int xHold=0, yHold=0;
-                xHold = frontier.front().getPos()[i].first - frontier.front().getPos()[j].first;
-                yHold = frontier.front().getPos()[i].second - frontier.front().getPos()[j].second;
+                xHold = frontier.front().getPos()[i] - frontier.front().getPos()[j];
+                yHold = i - j;
 
                 xHold*=xHold, yHold*=yHold;
 
@@ -193,14 +145,14 @@ bool isValid(State & node, int & width, int & depth, Problem & prob){//Tests whe
         return true;
     }
     
-    for (int i=0; i<node.getDepth(); i++){
+    for (int i=0; i<node.getDepth()-1; i++){
 
-        if(width == node.getPos()[i].second){
+        if(width == node.getPos()[i]){
             return false;
         }
 
-        int xHold = node.getPos()[i].first - depth;
-        int yHold = node.getPos()[i].second - width;
+        int xHold = node.getPos()[i] - width;
+        int yHold = i - depth;
 
         yHold *= yHold, xHold *= xHold;
 
@@ -228,8 +180,8 @@ int bfs(Problem & problem, bool oneAnswer = false){ //Breadth First Search Algor
     while (!qq.empty()){//Loops until either the queue is empty or the depth of N is reached                                                                                                                                                                                                                                                                                                                                                                                                                                                  
         
         nodeHold = qq.front();
-        
-        depth = nodeHold.getPos().size();
+
+        depth = nodeHold.getPos().size()-1;
 
         if(depth > problem.getN()-1){
             solutions += goalState(problem, qq, oneAnswer);
@@ -245,34 +197,16 @@ int bfs(Problem & problem, bool oneAnswer = false){ //Breadth First Search Algor
         for(int i=0; i < problem.getN(); i++){
             State node = nodeHold;
 
-            //if (isValid(nodeHold, i, depth, problem)){
-                node.newDepth(depth, i);
-                qq.push(node);
-            //}
+            node.getPos()[depth] = i;
+            node.newDepth(0);
+            qq.push(node);
         
             
         }
 
-       
     }
     return solutions;
     
-}
-
-bool isVisited(vector<pair<int, int>> const & nodes, int const & depth, int const & width){
-    
-    if(nodes.empty()){
-        return false;
-    }
-
-    for (auto i=nodes.begin(); i!=nodes.end(); i++){
-        if ((*i).first == depth && (*i).second == width){
-            return true;
-        }
-    }
-    
-
-    return false;
 }
 
 int bfsP(Problem & problem, bool oneAnswer = false){   //BFS But with pruned searches
@@ -291,25 +225,31 @@ int bfsP(Problem & problem, bool oneAnswer = false){   //BFS But with pruned sea
     while (!qq.empty()){//Loops until either the queue is empty or the depth of N is reached                                                                                                                                                                                                                                                                                                                                                                                                                                                  
         
         nodeHold = qq.front();
-        
-        depth = nodeHold.getPos().size();
+
+        depth = nodeHold.getPos().size()-1;
 
         if(depth > problem.getN()-1){
-            solutions += goalState(problem, qq, oneAnswer);  
+            solutions += goalState(problem, qq, oneAnswer);
+            
+            if (oneAnswer && solutions > 0){
+                return solutions;
+            }
             break;
         }
-        qq.pop();
 
+        qq.pop();
 
         for(int i=0; i < problem.getN(); i++){
             State node = nodeHold;
-                if (isValid(nodeHold, i, depth, problem)){
-                    node.newDepth(depth, i);   
-                    qq.push(node);
-                }
+
+            if(isValid(node, i, depth, problem)){
+                node.getPos()[depth] = i;
+                node.newDepth(0);
+                qq.push(node);
+            }
+            
         }
-        
-        
+
     }
     return solutions;
 }
@@ -541,14 +481,14 @@ int main(int const argc, char const ** argv){// Main Code Driver
     cout << "BFS TIME TAKEN" << endl << "Seconds: " << duration.count() << " Milliseconds: " << duration2.count() << endl;
 
     //BFS Pruned Call
-    /*start = high_resolution_clock::now(); //Timing how long the bfs function takes to run and complete
+    start = high_resolution_clock::now(); //Timing how long the bfs function takes to run and complete
     cout << bfsP(queens, false) << endl;
 
     stop = high_resolution_clock::now();
 
     duration = duration_cast<seconds>(stop - start);
     duration2 = duration_cast<milliseconds>(stop - start);
-    cout << "BFS ONE SOLUTION, TIME TAKEN" << endl << "Seconds: " << duration.count() << " Milliseconds: " << duration2.count() << endl;*/
+    cout << "BFS ONE SOLUTION, TIME TAKEN" << endl << "Seconds: " << duration.count() << " Milliseconds: " << duration2.count() << endl;
 
     /*vector<int> initState = genRandomState(queens);
     cout << "HILL CLIMBING" << endl;
