@@ -317,6 +317,13 @@ void hillClimbing(Problem & prob, vector<int> initState, bool shotgun){
 
     cout << "INITIAL STATE" << endl;
     cout << "EVAL: " << confidence << endl;
+
+   for (int i=0; i<prob.getN(); i++){
+        cout << "( " << i << " " << initState[i] << " ) ";
+    }
+
+    cout << endl;
+
     for (int i=0; i<prob.getN(); i++){
         for (int j=0; j<prob.getN(); j++){
             if(i == initState[j]){
@@ -357,10 +364,17 @@ void hillClimbing(Problem & prob, vector<int> initState, bool shotgun){
         }else{
             break;
         }
+
     }
 
     cout << "FINAL STATE" << endl;
     cout << "EVAL: " << confidence << endl;
+
+    for (int i=0; i<prob.getN(); i++){
+        cout << "( " << i << " " << initState[i] << " ) ";
+    }
+
+    cout << endl;
 
     for (int i=0; i<prob.getN(); i++){
         for (int j=0; j<prob.getN(); j++){
@@ -391,6 +405,11 @@ void simulatedAnnealing(Problem & prob, vector<int> initState, double const deca
 
     cout << "INITIAL STATE" << endl;
     cout << "EVAL: " << confidence << endl;
+   for (int i=0; i<prob.getN(); i++){
+        cout << "( " << i << " " << initState[i] << " ) ";
+    }
+
+    cout << endl;
     for (int i=0; i<prob.getN(); i++){
         for (int j=0; j<prob.getN(); j++){
             if(i == initState[j]){
@@ -438,6 +457,12 @@ void simulatedAnnealing(Problem & prob, vector<int> initState, double const deca
     cout << "EVAL: " << confidence << endl;
 
     for (int i=0; i<prob.getN(); i++){
+        cout << "( " << i << " " << initState[i] << " ) ";
+    }
+
+    cout << endl;
+
+    for (int i=0; i<prob.getN(); i++){
         for (int j=0; j<prob.getN(); j++){
             if(i == initState[j]){
                 cout << "Q\t";
@@ -455,10 +480,6 @@ int main(int const argc, char const ** argv){// Main Code Driver
     
     bool bfsMode = false, lsMode = false;
     bool hcMode = false;
-
-    cout.clear();
-
-    cout << argc << endl;
 
     if (argc < 3){
         cerr << "Program needs an N value of 1-20 and a K range value to run" << endl;
@@ -482,10 +503,6 @@ int main(int const argc, char const ** argv){// Main Code Driver
             hcMode = true;
         }
     }
-
-    cout << atoi(argv[3]) << atoi(argv[4]) <<atoi(argv[5]) << endl;
-
-    cout << bfsMode << lsMode << hcMode << endl;
 
 
     if (atoi(argv[1]) < 1 || atoi(argv[1]) > 20){
@@ -541,33 +558,36 @@ int main(int const argc, char const ** argv){// Main Code Driver
         cout << endl << "LOCAL SEARCHES" << endl;
 
         while (queens.getN() <= queens.getK() || queens.getK() == 0){//Will loop until n == k, one iteration if k == 0
+            
             cout << endl << "N: " << queens.getN() << endl << endl;
-            
-            vector<int> initState = genRandomState(queens);
-            cout << "HILL CLIMBING" << endl;
-            start = high_resolution_clock::now();
 
-            hillClimbing(queens, initState, hcMode);
+            if (queens.getN() != 2 && queens.getN() != 3){
+                vector<int> initState = genRandomState(queens);
+                cout << "HILL CLIMBING" << endl;
+                start = high_resolution_clock::now();
 
-            stop = high_resolution_clock::now();
-            duration = duration_cast<seconds>(stop - start);
-            duration2 = duration_cast<milliseconds>(stop - start);
-            cout << "TIME TAKEN:" << endl << "Seconds: " << duration.count() << " Milliseconds: " << duration2.count() << endl;
+                hillClimbing(queens, initState, hcMode);
 
-            cout << "SIMULATED ANNEALING" << endl;
-            start = high_resolution_clock::now();
+                stop = high_resolution_clock::now();
+                duration = duration_cast<seconds>(stop - start);
+                duration2 = duration_cast<milliseconds>(stop - start);
+                cout << "TIME TAKEN:" << endl << "Seconds: " << duration.count() << " Milliseconds: " << duration2.count() << endl;
 
-            simulatedAnnealing(queens, initState);
+                cout << "SIMULATED ANNEALING" << endl;
+                start = high_resolution_clock::now();
 
-            stop = high_resolution_clock::now();
-            duration = duration_cast<seconds>(stop - start);
-            duration2 = duration_cast<milliseconds>(stop - start);
-            cout << "TIME TAKEN:" << endl << "Seconds: " << duration.count() << " Milliseconds: " << duration2.count() << endl;
-            
-            if (queens.getK() == 0){
-                break;
+                simulatedAnnealing(queens, initState);
+
+                stop = high_resolution_clock::now();
+                duration = duration_cast<seconds>(stop - start);
+                duration2 = duration_cast<milliseconds>(stop - start);
+                cout << "TIME TAKEN:" << endl << "Seconds: " << duration.count() << " Milliseconds: " << duration2.count() << endl;
+                
+                if (queens.getK() == 0){
+                    break;
+                }
             }
-
+            
             queens.incN();
         }
     }
