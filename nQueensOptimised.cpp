@@ -10,7 +10,10 @@
 
 using namespace std;
 
-//Note this program needs to be complied with -O3 optimization to be relatively quick
+//s5132278, Mitchell Roles
+
+//Note this Program uses command line arguments to alter how the program runs
+// Arguments: 1=N, 2=Range, 3=Run BFS, 4=Run Local Searches, 5=Uses Shotgun Hill Climbing Search
 
 class Problem{//Holds information regarding the given problem
     public:
@@ -48,7 +51,7 @@ class State{//Holds information about a current state, ie the positions of the q
         return qPos;
     }
 
-    int getDepth(){
+    int getDepth(){ //returns the depth of the tree
         return sDepth;
     }
 
@@ -56,12 +59,8 @@ class State{//Holds information about a current state, ie the positions of the q
         qPos.push_back(i);
         sDepth = qPos.size();
     }
-    void remove(){
-        qPos.erase(qPos.begin());
-        sDepth = qPos.size();
-    }
 
-    void printPos(){
+    void printPos(){    //Prints the nodes in the path
         cout << "[ ";
         for(int i=0; i<qPos.size()-1; i++){
             cout << "(" << i << " " << qPos[i] << ")";
@@ -74,7 +73,7 @@ class State{//Holds information about a current state, ie the positions of the q
     long unsigned int sDepth;                     //Current Depth of the search tree
 };
 
-void printFrontier(queue<State> frontier){
+void printFrontier(queue<State> frontier){  //Prints the contents of the frontier (For testing purposes)
     while(!frontier.empty()){
         frontier.front().printPos();
         frontier.pop();
@@ -84,19 +83,20 @@ void printFrontier(queue<State> frontier){
 }
 
 int goalState(Problem & problem, queue<State> frontier, bool pruned = false){//Function that will test if the current solution is a goal state
-    //Alter this to take the whole frontier
-    int solutions = 0;
-    
-    bool isSolved = true;
+    //Problem Class, Queue of States, exit early bool
 
-    while (!frontier.empty()){
+    int solutions = 0;  //Solutions found
+
+    bool isSolved = true;   //Confition to break early if 1 solution has been found
+
+    while (!frontier.empty()){  //Loops until frontier is empty
         isSolved = true;
 
         for (int i=0; i<problem.getN()-1; i++){
 
             for (int j=i+1; j<problem.getN(); j++){
 
-                if (frontier.front().getPos()[i] == frontier.front().getPos()[j]){
+                if (frontier.front().getPos()[i] == frontier.front().getPos()[j]){  //Checks if the current node and another node are on the same level
                     isSolved = false;
                     break;
                 }
@@ -112,9 +112,6 @@ int goalState(Problem & problem, queue<State> frontier, bool pruned = false){//F
                 xHold*=xHold, yHold*=yHold;
 
                 if (xHold == yHold){
-                    /*cout << "HOLD: (" << xHold << " " << yHold << ") " << endl;
-                    cout << "I: (" << frontier.front().getPos()[i].first << " " << frontier.front().getPos()[i].second << ") J: (" 
-                    << frontier.front().getPos()[j].first << " " << frontier.front().getPos()[j].second << ")" << endl;*/
                     isSolved = false;
                     break;
                 }
@@ -123,13 +120,13 @@ int goalState(Problem & problem, queue<State> frontier, bool pruned = false){//F
 
         if (isSolved == true){
 
-            if (pruned){
+            if (pruned){    //Returns one solution
                 frontier.front().printPos();
                 return 1;
             }
                     
             solutions ++;
-            if(problem.getN() < 7){
+            if(problem.getN() < 7){ //Prints path of solutions up to 6
                 frontier.front().printPos();
             }
                     
@@ -137,8 +134,6 @@ int goalState(Problem & problem, queue<State> frontier, bool pruned = false){//F
 
         frontier.pop();
     }
-
-    
     	
     return solutions;
 }
@@ -168,7 +163,6 @@ bool isValid(State & node, int & width, int & depth, Problem & prob){//Tests whe
 }
 
 int bfs(Problem & problem, bool oneAnswer = false, bool toFile = false){ //Breadth First Search Algorithm
-    //Going to need to make it so that the queue is read to a file instead of to memory
     
     //Currently finds all paths to the lowest depth
 
@@ -188,7 +182,9 @@ int bfs(Problem & problem, bool oneAnswer = false, bool toFile = false){ //Bread
 
         depth = nodeHold.getPos().size()-1;
 
-        if(depth > problem.getN()-1){
+        if(depth > problem.getN()-1){   //If the number of nodes on a path is greater than N test goal states
+            //No point testing any other state
+
             solutions += goalState(problem, qq, oneAnswer);
             
             if (oneAnswer && solutions > 0){
@@ -197,16 +193,14 @@ int bfs(Problem & problem, bool oneAnswer = false, bool toFile = false){ //Bread
             break;
         }
 
-        qq.pop();
+        qq.pop();   //Pop placed under the goal state check to ensure all Depth == N paths are checked
 
         for(int i=0; i < problem.getN(); i++){
-            State node = nodeHold;
+            State node = nodeHold;      //Assigns a path that will have all of the previous information of the prior, NodeHold = {1, 2, 3} : Node = {1, 2, 3, i} --> Node = {1, 2, 3, i+1}
 
             node.getPos()[depth] = i;
             node.newDepth(0);
-            qq.push(node);
-        
-            
+            qq.push(node);  // pushes the new node onto the queue
         }
 
     }
@@ -216,13 +210,10 @@ int bfs(Problem & problem, bool oneAnswer = false, bool toFile = false){ //Bread
 
 int bfsP(Problem & problem, bool oneAnswer = false){   //BFS But with pruned searches
     //Currently finds all paths to the lowest depth
-    //Rewrite this to be as the original bfs function was
 
     queue<State> qq;    //queue of queen's positionsd
     qq.push(State());   //Pushes empty "State"
     State nodeHold;     //Independent sate holder, does not change within the for loop
-
-    //vector<pair<int, int>> visited;
 
     int depth = 0;      //The depth of the tree
     long unsigned int solutions = 0; //Number of found, non unique solutions
@@ -247,7 +238,8 @@ int bfsP(Problem & problem, bool oneAnswer = false){   //BFS But with pruned sea
         for(int i=0; i < problem.getN(); i++){
             State node = nodeHold;
 
-            if(isValid(node, i, depth, problem)){
+            if(isValid(node, i, depth, problem)){   //Checks if the node is on the same vertical level or is diagonal to another node on the same path
+                //Doesn't need to check if they are on the same breadth, as it is impossible with the current implementation
                 node.getPos()[depth] = i;
                 node.newDepth(0);
                 qq.push(node);
@@ -261,20 +253,21 @@ int bfsP(Problem & problem, bool oneAnswer = false){   //BFS But with pruned sea
 
 vector<int> genRandomState(Problem & prob){    //Generates a random state where all queens are on the board
     
-    vector<int> randState;
-    vector<int> usedNumbers;
+    vector<int> randState;      //Holds the initial state for the algorithms
+    vector<int> usedNumbers;    //Holds the numbers that have already been generated by the program
 
     for(int i=0; i<prob.getN(); i++){
         usedNumbers.push_back(0);
     }
 
     int i=0;
+
     while (i<prob.getN()){
         int randNumber = rand()%prob.getN();
         
-        if (usedNumbers[randNumber]==0){
+        if (usedNumbers[randNumber]==0){        //Won't allow two queen positions to be on the same vertical level
             randState.push_back(randNumber);
-            i++;
+            i++;                                //I will only increment when a unique number has been found
             usedNumbers[randNumber] = 1;
         }
         
@@ -285,9 +278,10 @@ vector<int> genRandomState(Problem & prob){    //Generates a random state where 
 
 }
 
-int stateEval(vector<int> & positions, Problem & prob){
+int stateEval(vector<int> & positions, Problem & prob){ //Evaluates the current state and counts the number of queens that are currently attacking each other
     int level = 0;
     
+    //Checks if queens are on the same vertical level or on the same diagonal line
     for (int i=0; i<prob.getN()-1; i++){
         for (int j=i+1; j<prob.getN(); j++){
             if (positions[i] == positions[j]){
@@ -309,11 +303,11 @@ int stateEval(vector<int> & positions, Problem & prob){
     return level;
 }
 
-void hillClimbing(Problem & prob, vector<int> initState, bool shotgun){
+void hillClimbing(Problem & prob, vector<int> initState, bool shotgun){     //Hill Climbing Algorithm with a Shotgun Search mode
 
     //Note INDEX is BREADTH on the vector of positions
     
-    int confidence = stateEval(initState, prob);
+    int confidence = stateEval(initState, prob);    //Recieves an evaulation of the initial state
 
     cout << "INITIAL STATE" << endl;
     cout << "EVAL: " << confidence << endl;
@@ -323,7 +317,7 @@ void hillClimbing(Problem & prob, vector<int> initState, bool shotgun){
     }
 
     cout << endl;
-
+    //Prints the board
     for (int i=0; i<prob.getN(); i++){
         for (int j=0; j<prob.getN(); j++){
             if(i == initState[j]){
@@ -350,7 +344,7 @@ void hillClimbing(Problem & prob, vector<int> initState, bool shotgun){
                     newState[j] = i;
 
                     int newConfidence = stateEval(newState, prob);
-                    if (newConfidence < confidence){
+                    if (newConfidence < confidence){        //Compares the evaluation of the old state against the new one
                         initState = newState;
                         confidence = newConfidence;
                     }    
@@ -358,7 +352,7 @@ void hillClimbing(Problem & prob, vector<int> initState, bool shotgun){
             }
         }
 
-        if (shotgun && confidence != 0){
+        if (shotgun && confidence != 0){                //if Shotgun Search is true it will feed the program another random state and allows it to loop, else it will break
             initState = genRandomState(prob);
             confidence = stateEval(initState, prob);
         }else{
@@ -388,20 +382,18 @@ void hillClimbing(Problem & prob, vector<int> initState, bool shotgun){
 
          cout << endl << endl;
     }
-
-
     return;
-
 }
 
 void simulatedAnnealing(Problem & prob, vector<int> initState, double const decayRate = 0.5, int const constantMultiplyer = 10){    //SA, similar to HC and SHC but as the evaluation gets lower the probability for it to pick an answer anyway increases
-    
+    //Decay rate and the constant multiplier are for the exponetial decay equation, are set up by default to work well enough but can be altered
+
     //Note: Index is breadth
     
     int confidence = stateEval(initState, prob);
     double temperature = prob.getN() * constantMultiplyer; //Adjusts the adjustment to be relative to the size of the problem
-    int tempMax = temperature;
-    int iterTemp = 0;
+    int tempMax = temperature;                             //Hold the maximum temperature
+    int iterTemp = 0;                                      //Iteration in the decay of the temperature
 
     cout << "INITIAL STATE" << endl;
     cout << "EVAL: " << confidence << endl;
@@ -440,7 +432,7 @@ void simulatedAnnealing(Problem & prob, vector<int> initState, double const deca
 
                     int skipP = rand() % tempMax;
 
-                    if (newConfidence < confidence || (skipP * newConfidence) < temperature){//IF the random value - new confidence is greater than the adjusted value /2 then it will skip
+                    if (newConfidence < confidence || (skipP * newConfidence) < temperature){ //If random value * new evaluation is less than the current temperature than the program will allow the change to happen
                         initState = newState;
                         confidence = newConfidence;
                     }    
@@ -448,7 +440,7 @@ void simulatedAnnealing(Problem & prob, vector<int> initState, double const deca
             }
         }
 
-        temperature = tempMax * pow(exp(1), -(decayRate * iterTemp));
+        temperature = tempMax * pow(exp(1), -(decayRate * iterTemp));   //Expnential Decay equation
         iterTemp++;
     }
     
@@ -480,6 +472,8 @@ int main(int const argc, char const ** argv){// Main Code Driver
     
     bool bfsMode = false, lsMode = false;
     bool hcMode = false;
+
+    cout.clear();
 
     if (argc < 3){
         cerr << "Program needs an N value of 1-20 and a K range value to run" << endl;
@@ -514,7 +508,7 @@ int main(int const argc, char const ** argv){// Main Code Driver
             cerr << "K value must be greater than N value" << endl;
             return EXIT_FAILURE;
     }
-
+    
     srand((int)time(NULL)); //Seeding rand() for later
 
     Problem queens(atoi(argv[1]), atoi(argv[2]));
